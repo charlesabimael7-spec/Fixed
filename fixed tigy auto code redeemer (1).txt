@@ -1,0 +1,234 @@
+local RanTimes = 0
+
+local Connection = game:GetService("RunService").Heartbeat:Connect(function()
+    RanTimes += 1
+end)
+
+repeat
+    task.wait()
+until RanTimes >= 2
+
+Connection:Disconnect()
+
+local Players = game:GetService("Players")
+local CoreGui = game:GetService("CoreGui")
+local UserInputService = game:GetService("UserInputService")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local TweenService = game:GetService("TweenService")
+
+local LocalPlayer = Players.LocalPlayer
+local UIContainer = (typeof(get_hidden_gui) == "function" and get_hidden_gui()) or CoreGui
+
+if UIContainer:FindFirstChild("TigysCodeRedeemerUI") then
+    UIContainer.TigysCodeRedeemerUI:Destroy()
+end
+
+local ScreenGui = Instance.new("ScreenGui")
+ScreenGui.Name = "TigysCodeRedeemerUI"
+ScreenGui.DisplayOrder = 9999
+ScreenGui.IgnoreGuiInset = true
+ScreenGui.Parent = UIContainer
+
+local isMonitoring = false
+local messageCount = 0
+local targetThreshold = 3
+local TargetRemote = nil
+local BoundRemotes = {}
+
+local function createText(parent, name, text, size, font, color, pos, extSize)
+    local label = Instance.new("TextLabel")
+    label.Name = name
+    label.Text = text
+    label.TextSize = size
+    label.Font = font
+    label.TextColor3 = color
+    label.Position = pos
+    label.Size = extSize
+    label.BackgroundTransparency = 1
+    label.TextXAlignment = Enum.TextXAlignment.Left
+    label.Parent = parent
+    return label
+end
+
+local MainFrame = Instance.new("Frame")
+MainFrame.Name = "MainFrame"
+MainFrame.Size = UDim2.new(0, 320, 0, 195)
+MainFrame.Position = UDim2.new(0.5, -160, 0.4, -97)
+MainFrame.BackgroundColor3 = Color3.fromRGB(11, 12, 17)
+MainFrame.BackgroundTransparency = 0.08
+MainFrame.Active = true
+MainFrame.Draggable = true
+MainFrame.Parent = ScreenGui
+
+Instance.new("UICorner", MainFrame).CornerRadius = UDim.new(0, 10)
+local MainStroke = Instance.new("UIStroke", MainFrame)
+MainStroke.Color = Color3.fromRGB(45, 50, 65)
+MainStroke.Thickness = 1.5
+
+local HeaderBar = Instance.new("Frame", MainFrame)
+HeaderBar.Size = UDim2.new(1, 0, 0, 48)
+HeaderBar.BackgroundColor3 = Color3.fromRGB(16, 18, 26)
+HeaderBar.BorderSizePixel = 0
+local HeaderCorner = Instance.new("UICorner", HeaderBar)
+HeaderCorner.CornerRadius = UDim.new(0, 10)
+
+local HeaderLine = Instance.new("Frame", MainFrame)
+HeaderLine.Size = UDim2.new(1, 0, 0, 1)
+HeaderLine.Position = UDim2.new(0, 0, 0, 48)
+HeaderLine.BackgroundColor3 = Color3.fromRGB(30, 35, 48)
+HeaderLine.BorderSizePixel = 0
+
+local TitleLabel = createText(MainFrame, "Title", "TIGY'S CODE REDEEMER", 13, Enum.Font.GothamBold, Color3.fromRGB(255, 255, 255), UDim2.new(0, 14, 0, 10), UDim2.new(0, 200, 0, 14))
+local DiscordLabel = createText(MainFrame, "Discord", "discord.gg/hjW8mmsubb", 9, Enum.Font.Code, Color3.fromRGB(100, 110, 130), UDim2.new(0, 14, 0, 28), UDim2.new(0, 180, 0, 10))
+
+local StatusDot = Instance.new("Frame", MainFrame)
+StatusDot.Name = "StatusDot"
+StatusDot.Size = UDim2.new(0, 8, 0, 8)
+StatusDot.Position = UDim2.new(1, -22, 0, 20)
+StatusDot.BackgroundColor3 = Color3.fromRGB(255, 75, 75)
+StatusDot.BorderSizePixel = 0
+Instance.new("UICorner", StatusDot).CornerRadius = UDim.new(1, 0)
+
+local DotGlow = Instance.new("UIStroke", StatusDot)
+DotGlow.Color = Color3.fromRGB(255, 75, 75)
+DotGlow.Thickness = 1.5
+DotGlow.Transparency = 0.4
+
+local function applyButtonEffects(btn, stroke, baseColor, hoverColor)
+    btn.MouseEnter:Connect(function()
+        TweenService:Create(btn, TweenInfo.new(0.2), {BackgroundColor3 = hoverColor}):Play()
+    end)
+    btn.MouseLeave:Connect(function()
+        TweenService:Create(btn, TweenInfo.new(0.2), {BackgroundColor3 = baseColor}):Play()
+    end)
+end
+
+local ToggleRedeemBtn = Instance.new("TextButton", MainFrame)
+ToggleRedeemBtn.Size = UDim2.new(1, -28, 0, 44)
+ToggleRedeemBtn.Position = UDim2.new(0, 14, 0, 68)
+ToggleRedeemBtn.BackgroundColor3 = Color3.fromRGB(22, 24, 30)
+ToggleRedeemBtn.Text = "SCAN GLOBAL MESSAGES"
+ToggleRedeemBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+ToggleRedeemBtn.Font = Enum.Font.GothamBold
+ToggleRedeemBtn.TextSize = 12
+Instance.new("UICorner", ToggleRedeemBtn).CornerRadius = UDim.new(0, 6)
+
+local RedeemStroke = Instance.new("UIStroke", ToggleRedeemBtn)
+RedeemStroke.Color = Color3.fromRGB(50, 55, 70)
+RedeemStroke.Thickness = 1
+applyButtonEffects(ToggleRedeemBtn, RedeemStroke, Color3.fromRGB(22, 24, 30), Color3.fromRGB(30, 33, 42))
+
+local ModeBtn = Instance.new("TextButton", MainFrame)
+ModeBtn.Size = UDim2.new(1, -28, 0, 44)
+ModeBtn.Position = UDim2.new(0, 14, 0, 126)
+ModeBtn.BackgroundColor3 = Color3.fromRGB(16, 17, 22)
+ModeBtn.Text = "MODE: 3 GLOBAL MESSAGE"
+ModeBtn.TextColor3 = Color3.fromRGB(180, 185, 200)
+ModeBtn.Font = Enum.Font.GothamMedium
+ModeBtn.TextSize = 11
+Instance.new("UICorner", ModeBtn).CornerRadius = UDim.new(0, 6)
+
+local ModeStroke = Instance.new("UIStroke", ModeBtn)
+ModeStroke.Color = Color3.fromRGB(35, 40, 50)
+ModeStroke.Thickness = 1
+applyButtonEffects(ModeBtn, ModeStroke, Color3.fromRGB(16, 17, 22), Color3.fromRGB(22, 24, 32))
+
+ModeBtn.MouseButton1Click:Connect(function()
+    if targetThreshold == 3 then
+        targetThreshold = 4
+        ModeBtn.Text = "MODE: 4 GLOBAL MESSAGE"
+        ModeBtn.TextColor3 = Color3.fromRGB(0, 255, 160)
+        ModeStroke.Color = Color3.fromRGB(0, 255, 160)
+    else
+        targetThreshold = 3
+        ModeBtn.Text = "MODE: 3 GLOBAL MESSAGE"
+        ModeBtn.TextColor3 = Color3.fromRGB(180, 185, 200)
+        ModeStroke.Color = Color3.fromRGB(35, 40, 50)
+    end
+    if isMonitoring then
+        messageCount = 0
+    end
+end)
+
+ToggleRedeemBtn.MouseButton1Click:Connect(function()
+    isMonitoring = not isMonitoring
+    messageCount = 0 
+    
+    if isMonitoring then
+        StatusDot.BackgroundColor3 = Color3.fromRGB(0, 255, 160)
+        DotGlow.Color = Color3.fromRGB(0, 255, 160)
+        
+        ToggleRedeemBtn.Text = "STOP SCANNING"
+        ToggleRedeemBtn.TextColor3 = Color3.fromRGB(255, 80, 80)
+        RedeemStroke.Color = Color3.fromRGB(255, 80, 80)
+        MainStroke.Color = Color3.fromRGB(0, 255, 160)
+    else
+        StatusDot.BackgroundColor3 = Color3.fromRGB(255, 75, 75)
+        DotGlow.Color = Color3.fromRGB(255, 75, 75)
+        
+        ToggleRedeemBtn.Text = "SCAN GLOBAL MESSAGES"
+        ToggleRedeemBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+        RedeemStroke.Color = Color3.fromRGB(50, 55, 70)
+        MainStroke.Color = Color3.fromRGB(45, 50, 65)
+    end
+end)
+
+local function handleIncomingChat(messageText)
+    if not isMonitoring then return end
+    
+    local currentTextBox = UserInputService:GetFocusedTextBox()
+    if currentTextBox then
+        messageCount = messageCount + 1
+        
+        currentTextBox.Text = currentTextBox.Text .. tostring(messageText)
+        
+        if messageCount >= targetThreshold then
+            task.wait(0.05)
+            currentTextBox:ReleaseFocus(true)
+            
+            local parentFrame = currentTextBox.Parent
+            if parentFrame then
+                for _, child in ipairs(parentFrame:GetChildren()) do
+                    if (child:IsA("TextButton") or child:IsA("ImageButton")) and child ~= currentTextBox then
+                        if typeof(getconnections) == "function" then
+                            for _, connection in pairs(getconnections(child.MouseButton1Click)) do connection:Fire() end
+                            for _, connection in pairs(getconnections(child.MouseButton1Down)) do connection:Fire() end
+                        end
+                    end
+                end
+            end
+            
+            isMonitoring = false
+            StatusDot.BackgroundColor3 = Color3.fromRGB(255, 75, 75)
+            DotGlow.Color = Color3.fromRGB(255, 75, 75)
+            
+            ToggleRedeemBtn.Text = "SCAN GLOBAL MESSAGES"
+            ToggleRedeemBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+            RedeemStroke.Color = Color3.fromRGB(50, 55, 70)
+            MainStroke.Color = Color3.fromRGB(45, 50, 65)
+            messageCount = 0
+        end
+    end
+end
+
+local function scanAndHook(object)
+    if not object:IsA("RemoteEvent") or BoundRemotes[object] then return end
+    BoundRemotes[object] = true
+    
+    object.OnClientEvent:Connect(function(...)
+        local args = {...}
+        if typeof(args[1]) == "string" and typeof(args[2]) == "number" and typeof(args[3]) == "string" then
+            if args[3]:match("Sounds") or (typeof(args[4]) == "string" and (args[4] == "Top" or args[4] == "Bottom")) then
+                if TargetRemote ~= object then
+                    TargetRemote = object
+                end
+                handleIncomingChat(args[1])
+            end
+        end
+    end)
+end
+
+for _, v in ipairs(ReplicatedStorage:GetDescendants()) do
+    scanAndHook(v)
+end
+ReplicatedStorage.DescendantAdded:Connect(scanAndHook)
